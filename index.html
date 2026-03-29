@@ -441,6 +441,12 @@
                     <button id="cancelAddButton" class="btn btn-secondary">Cancel</button>
                 </div>
             </div>
+            
+            <div style="margin-top: 40px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                <button onclick="resetToDefaults()" style="background: none; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; cursor: pointer;">
+                    🔄 Reset Defaults
+                </button>
+            </div>
         </div>
     </div>
 
@@ -568,6 +574,9 @@
         let blockNextClick = false;
 
         function startHoldTimer(e, type, id) {
+            // Prevent double-resetting of the flag (e.g. touchstart followed by mousedown)
+            if (e.type === 'mousedown' && 'ontouchstart' in window) return;
+            
             blockNextClick = false;
             globalHoldTimer = setTimeout(() => {
                 blockNextClick = true;
@@ -579,6 +588,14 @@
 
         function cancelHoldTimer() {
             clearTimeout(globalHoldTimer);
+        }
+
+        function resetToDefaults() {
+            if (confirm('Restore default icons and messages? This will keep your contacts but reset the dashboard buttons.')) {
+                localStorage.removeItem('customButtons');
+                loadCustomButtons();
+                renderButtons();
+            }
         }
 
         function hideDeleteIcons() {
