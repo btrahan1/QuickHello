@@ -180,6 +180,9 @@
         #coffee:hover .icon { filter: drop-shadow(0 0 8px #d97706); }
         #wave:hover .icon { filter: drop-shadow(0 0 8px #3b82f6); }
         #heart:hover .icon { filter: drop-shadow(0 0 8px #ef4444); }
+        #hungry:hover .icon { filter: drop-shadow(0 0 8px #f97316); }
+        #dinner:hover .icon { filter: drop-shadow(0 0 8px #10b981); }
+        #call:hover .icon { filter: drop-shadow(0 0 8px #34d399); }
 
         @media (max-width: 480px) {
             .glass-card {
@@ -226,6 +229,18 @@
                 <span class="icon">❤️</span>
                 <span class="label">Heart</span>
             </button>
+            <button onclick="sendMessage('hungry')" id="hungry" class="action-btn">
+                <span class="icon">🍕</span>
+                <span class="label">Hungry</span>
+            </button>
+            <button onclick="sendMessage('dinner')" id="dinner" class="action-btn">
+                <span class="icon">🍽️</span>
+                <span class="label">Dinner</span>
+            </button>
+            <button onclick="callRecipient()" id="call" class="action-btn">
+                <span class="icon">📞</span>
+                <span class="label">Call</span>
+            </button>
         </div>
     </div>
 
@@ -233,7 +248,9 @@
         const messages = {
             coffee: "Coffee! Now! ☕",
             wave: "👋",
-            heart: "❤️"
+            heart: "❤️",
+            hungry: "I'm hungry! 🍕",
+            dinner: "Dinner is ready! 🍽️"
         };
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -313,6 +330,15 @@
             }
             const text = messages[type];
             window.location.href = `sms:${number}?body=${encodeURIComponent(text)}`;
+        }
+
+        function callRecipient() {
+            const number = localStorage.getItem('targetPhoneNumber');
+            if (!number) {
+                alert('Please configure a recipient first!');
+                return;
+            }
+            window.location.href = `tel:${number}`;
         }
     </script>
 </body>
