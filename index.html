@@ -254,28 +254,46 @@
             position: absolute;
             top: -8px;
             right: -8px;
-            width: 24px;
-            height: 24px;
+            width: 28px;
+            height: 28px;
             background: #ef4444;
             color: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 18px;
             border: 2px solid var(--card-bg);
             cursor: pointer;
-            z-index: 10;
+            z-index: 20;
             opacity: 0;
-            transition: opacity 0.2s;
+            transform: scale(0);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
         }
 
-        .action-btn:hover .delete-btn {
+        .action-btn.active-delete .delete-btn {
             opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+
+        .action-btn.active-delete {
+            animation: wiggle 0.3s infinite;
+        }
+
+        @keyframes wiggle {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(-1deg); }
+            75% { transform: rotate(1deg); }
+            100% { transform: rotate(0deg); }
         }
 
         .action-btn {
             position: relative;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
         }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -355,7 +373,18 @@
             document.getElementById('toggleAddButton').addEventListener('click', () => toggleForm('addButtonForm', true));
             document.getElementById('cancelAddButton').addEventListener('click', () => toggleForm('addButtonForm', false));
             document.getElementById('saveNewButton').addEventListener('click', addNewButton);
+
+            // Dismiss delete icons when clicking away
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.action-btn')) {
+                    hideDeleteIcons();
+                }
+            });
         });
+
+        function hideDeleteIcons() {
+            document.querySelectorAll('.action-btn').forEach(b => b.classList.remove('active-delete'));
+        }
 
         function toggleForm(id, show) {
             const forms = ['manualEntryForm', 'addButtonForm'];
@@ -383,6 +412,9 @@
             localStorage.setItem('customButtons', JSON.stringify(customButtons));
         }
 
+        let pressTimer;
+        let isLongPress = false;
+
         function renderButtons() {
             const grid = document.getElementById('actionsGrid');
             grid.innerHTML = '';
@@ -391,20 +423,48 @@
                 const button = document.createElement('button');
                 button.className = 'action-btn';
                 button.id = btn.id;
+                
+                const isDefault = DEFAULT_BUTTONS.find(d => d.id === btn.id);
+
                 button.innerHTML = `
                     <span class="icon">${btn.icon}</span>
                     <span class="label">${btn.label}</span>
-                    ${!DEFAULT_BUTTONS.find(d => d.id === btn.id) ? `<span class="delete-btn" onclick="deleteButton(event, '${btn.id}')">×</span>` : ''}
+                    ${!isDefault ? `<span class="delete-btn" onclick="deleteButton(event, '${btn.id}')">×</span>` : ''}
                 `;
                 
-                if (btn.isCall) {
-                    button.onclick = () => callRecipient();
+                // Event listeners for long press
+                if (!isDefault) {
+                    button.onmousedown = (e) => startPress(e);
+                    button.onmouseup = (e) => endPress(e, btn);
+                    button.ontouchstart = (e) => startPress(e);
+                    button.ontouchend = (e) => endPress(e, btn);
                 } else {
-                    button.onclick = () => sendMessage(btn.id);
+                    button.onclick = btn.isCall ? () => callRecipient() : () => sendMessage(btn.id);
                 }
                 
                 grid.appendChild(button);
             });
+        }
+
+        function startPress(e) {
+            isLongPress = false;
+            pressTimer = setTimeout(() => {
+                isLongPress = true;
+                const btn = e.target.closest('.action-btn');
+                if (btn) btn.classList.add('active-delete');
+            }, 600);
+        }
+
+        function endPress(e, btnData) {
+            clearTimeout(pressTimer);
+            if (!isLongPress) {
+                // Regular tap
+                if (btnData.isCall) {
+                    callRecipient();
+                } else {
+                    sendMessage(btnData.id);
+                }
+            }
         }
 
         function addNewButton() {
