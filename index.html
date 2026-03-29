@@ -152,17 +152,89 @@
             transform: scale(0.98);
         }
 
+        .contact-bar {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding: 4px 4px 16px 4px;
+            margin-bottom: 24px;
+            scrollbar-width: none; /* Hide scrollbar Firefox */
+            -ms-overflow-style: none; /* Hide scrollbar IE/Edge */
+        }
+
+        .contact-bar::-webkit-scrollbar {
+            display: none; /* Hide scrollbar Chrome/Safari */
+        }
+
+        .contact-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .contact-item .avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            padding: 2px;
+            transition: all 0.3s;
+            overflow: hidden;
+            background: var(--card-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .contact-item.active .avatar {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+            transform: scale(1.1);
+        }
+
+        .contact-item .name {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            max-width: 70px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .add-contact-btn {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .add-contact-btn:hover {
+            border-color: var(--primary);
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
         #currentNumberDisplay {
-            margin-top: 16px;
+            margin-bottom: 16px;
             font-size: 0.875rem;
             color: var(--text-muted);
             padding: 12px;
             border-radius: 16px;
             background: rgba(0, 0, 0, 0.2);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-align: left;
+            display: none; /* Hidden unless needed for manual entry view */
         }
 
         .contact-avatar {
@@ -295,6 +367,26 @@
             -webkit-user-select: none;
             -webkit-touch-callout: none;
         }
+
+        .contact-delete-btn {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            z-index: 10;
+        }
+
+        .contact-item.active-delete .contact-delete-btn {
+            display: flex;
+        }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -305,6 +397,11 @@
     <div class="glass-card">
         <h1>QuickHello</h1>
 
+        <!-- Multi-Contact Bar -->
+        <div class="contact-bar" id="contactBar">
+            <!-- Dynamically populated -->
+        </div>
+
         <div class="actions-grid" id="actionsGrid">
             <!-- Dynamically populated -->
         </div>
@@ -313,20 +410,18 @@
             <div id="currentNumberDisplay">No recipient configured.</div>
 
             <div class="btn-group">
-                <button id="selectContactButton" class="btn btn-secondary">
-                    <span>👤</span> Contact
-                </button>
                 <button id="toggleManualButton" class="btn btn-secondary">
-                    <span>⌨️</span> Manual
+                    <span>⌨️</span> +Contact
                 </button>
                 <button id="toggleAddButton" class="btn btn-secondary">
-                    <span>➕</span> Add
+                    <span>➕</span> +Button
                 </button>
             </div>
 
             <div class="input-group" id="manualEntryForm">
-                <label for="phoneNumberInput">Enter Number</label>
-                <input type="tel" id="phoneNumberInput" placeholder="+1234567890">
+                <label for="phoneNumberInput">Add Contact Manually</label>
+                <input type="text" id="manualNameInput" placeholder="Name" style="padding: 12px; border-radius: 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white; margin-bottom: 8px;">
+                <input type="tel" id="phoneNumberInput" placeholder="Phone Number" style="margin-bottom: 8px;">
                 <div class="btn-group">
                     <button id="saveManualButton" class="btn btn-primary">Save</button>
                     <button id="cancelManualButton" class="btn btn-secondary">Cancel</button>
@@ -334,6 +429,7 @@
             </div>
 
             <div class="input-group" id="addButtonForm">
+                <!-- (Keep existing Add Button form) -->
                 <label>Add New Button</label>
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="newButtonIcon" placeholder="Icon (e.g. 🏡)" style="flex: 1; padding: 12px; border-radius: 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white;">
@@ -359,14 +455,17 @@
         ];
 
         let customButtons = [];
+        let quickContacts = [];
+        let activeContactId = null;
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadConfiguredNumber();
+            migrateData();
             loadCustomButtons();
+            loadContacts();
+            renderContacts();
             renderButtons();
             
-            document.getElementById('selectContactButton').addEventListener('click', selectContact);
-            document.getElementById('saveManualButton').addEventListener('click', saveManualNumber);
+            document.getElementById('saveManualButton').addEventListener('click', saveManualContact);
             document.getElementById('toggleManualButton').addEventListener('click', () => toggleForm('manualEntryForm', true));
             document.getElementById('cancelManualButton').addEventListener('click', () => toggleForm('manualEntryForm', false));
             
@@ -374,16 +473,103 @@
             document.getElementById('cancelAddButton').addEventListener('click', () => toggleForm('addButtonForm', false));
             document.getElementById('saveNewButton').addEventListener('click', addNewButton);
 
-            // Dismiss delete icons when clicking away
+            // Dismiss overlays
             document.addEventListener('click', (e) => {
-                if (!e.target.closest('.action-btn')) {
+                if (!e.target.closest('.action-btn') && !e.target.closest('.contact-item')) {
                     hideDeleteIcons();
                 }
             });
         });
 
+        function migrateData() {
+            const oldNumber = localStorage.getItem('targetPhoneNumber');
+            if (oldNumber && !localStorage.getItem('quickContacts')) {
+                const legacyContact = {
+                    id: 'legacy_' + Date.now(),
+                    name: localStorage.getItem('targetContactName') || 'Favorite',
+                    number: oldNumber,
+                    icon: localStorage.getItem('targetContactIcon')
+                };
+                quickContacts = [legacyContact];
+                activeContactId = legacyContact.id;
+                saveContacts();
+                localStorage.removeItem('targetPhoneNumber');
+                localStorage.removeItem('targetContactName');
+                localStorage.removeItem('targetContactIcon');
+            }
+        }
+
+        function loadContacts() {
+            const saved = localStorage.getItem('quickContacts');
+            if (saved) {
+                quickContacts = JSON.parse(saved);
+                activeContactId = localStorage.getItem('activeContactId') || (quickContacts.length > 0 ? quickContacts[0].id : null);
+            }
+        }
+
+        function saveContacts() {
+            localStorage.setItem('quickContacts', JSON.stringify(quickContacts));
+            localStorage.setItem('activeContactId', activeContactId);
+        }
+
+        function renderContacts() {
+            const bar = document.getElementById('contactBar');
+            bar.innerHTML = '';
+            
+            quickContacts.forEach(contact => {
+                const item = document.createElement('div');
+                item.className = `contact-item ${contact.id === activeContactId ? 'active' : ''}`;
+                item.onclick = () => switchContact(contact.id);
+                
+                const avatarContent = contact.icon 
+                    ? `<img src="${contact.icon}" alt="${contact.name}">`
+                    : `<span>👤</span>`;
+
+                item.innerHTML = `
+                    <div class="avatar">${avatarContent}</div>
+                    <div class="name">${contact.name}</div>
+                    <span class="contact-delete-btn" onclick="deleteContact(event, '${contact.id}')">×</span>
+                `;
+
+                // Long press for contact delete
+                item.onmousedown = (e) => startContactPress(e);
+                item.onmouseup = () => endContactPress();
+                item.ontouchstart = (e) => startContactPress(e);
+                item.ontouchend = () => endContactPress();
+
+                bar.appendChild(item);
+            });
+
+            // Add (+) button for contact picker
+            const addBtn = document.createElement('div');
+            addBtn.className = 'add-contact-btn';
+            addBtn.innerHTML = '➕';
+            addBtn.onclick = selectContactFromPicker;
+            bar.appendChild(addBtn);
+        }
+
+        function switchContact(id) {
+            if (isLongPress) return;
+            activeContactId = id;
+            saveContacts();
+            renderContacts();
+        }
+
+        let contactPressTimer;
+        function startContactPress(e) {
+            isLongPress = false;
+            contactPressTimer = setTimeout(() => {
+                isLongPress = true;
+                const item = e.target.closest('.contact-item');
+                if (item) item.classList.add('active-delete');
+            }, 600);
+        }
+        function endContactPress() {
+            clearTimeout(contactPressTimer);
+        }
+
         function hideDeleteIcons() {
-            document.querySelectorAll('.action-btn').forEach(b => b.classList.remove('active-delete'));
+            document.querySelectorAll('.action-btn, .contact-item').forEach(b => b.classList.remove('active-delete'));
         }
 
         function toggleForm(id, show) {
@@ -536,71 +722,73 @@
             }
         }
 
-        function saveManualNumber() {
-            const input = document.getElementById('phoneNumberInput');
-            const newNumber = input.value.trim();
+        function saveManualContact() {
+            const nameInput = document.getElementById('manualNameInput');
+            const numInput = document.getElementById('phoneNumberInput');
+            const newNumber = numInput.value.trim();
+            const newName = nameInput.value.trim() || 'User';
 
             if (newNumber) {
-                localStorage.setItem('targetPhoneNumber', newNumber);
-                localStorage.removeItem('targetContactName');
-                localStorage.removeItem('targetContactIcon'); // Clear icon if manually set
-                displayConfiguredNumber(newNumber);
-                input.value = '';
-                toggleManualEntry(false); // Collapse form after saving
+                const newContact = {
+                    id: 'manual_' + Date.now(),
+                    name: newName,
+                    number: newNumber,
+                    icon: null
+                };
                 
-                // Visual feedback
-                const btn = document.getElementById('saveManualButton');
-                const originalText = btn.innerText;
-                btn.innerText = 'Saved!';
-                btn.style.background = '#10b981';
-                setTimeout(() => {
-                    btn.innerText = originalText;
-                    btn.style.background = '';
-                }, 2000);
+                quickContacts.push(newContact);
+                activeContactId = newContact.id;
+                saveContacts();
+                renderContacts();
+
+                nameInput.value = '';
+                numInput.value = '';
+                toggleForm('manualEntryForm', false);
             }
         }
 
-        async function selectContact() {
+        async function selectContactFromPicker() {
             if ('contacts' in navigator) {
                 try {
-                    // Try to get icon support
                     const supportedProps = await navigator.contacts.getProperties();
                     const props = ['tel', 'name'];
-                    if (supportedProps.includes('icon')) {
-                        props.push('icon');
-                    }
+                    if (supportedProps.includes('icon')) props.push('icon');
 
-                    const opts = { multiple: false };
-                    const contacts = await navigator.contacts.select(props, opts);
+                    const contacts = await navigator.contacts.select(props, { multiple: false });
 
                     if (contacts.length > 0) {
                         const contact = contacts[0];
-                        const phoneNumber = contact.tel[0];
-                        const contactName = contact.name[0] || "Unknown";
-                        let contactIcon = null;
+                        const icon = (contact.icon && contact.icon.length > 0) ? await blobToDataURL(contact.icon[0]) : null;
+                        
+                        const newContact = {
+                            id: 'picker_' + Date.now(),
+                            name: contact.name[0] || "Unknown",
+                            number: contact.tel[0],
+                            icon: icon
+                        };
 
-                        if (contact.icon && contact.icon.length > 0) {
-                            try {
-                                contactIcon = await blobToDataURL(contact.icon[0]);
-                            } catch (e) {
-                                console.error('Icon conversion error:', e);
-                            }
-                        }
-
-                        localStorage.setItem('targetPhoneNumber', phoneNumber);
-                        localStorage.setItem('targetContactName', contactName);
-                        if (contactIcon) {
-                            localStorage.setItem('targetContactIcon', contactIcon);
-                        } else {
-                            localStorage.removeItem('targetContactIcon');
-                        }
-                        displayConfiguredNumber(phoneNumber, contactName, contactIcon);
+                        quickContacts.push(newContact);
+                        activeContactId = newContact.id;
+                        saveContacts();
+                        renderContacts();
                     }
                 } catch (error) {
-                    console.error('Contact picker error:', error);
+                    console.error('Picker error:', error);
                 }
             } else {
-                alert('Contact selection is not supported on this browser. Try Chrome on Android!');
+                toggleForm('manualEntryForm', true);
+            }
+        }
+
+        function deleteContact(event, id) {
+            event.stopPropagation();
+            if (confirm('Remove this contact from QuickHello?')) {
+                quickContacts = quickContacts.filter(c => c.id !== id);
+                if (activeContactId === id) {
+                    activeContactId = quickContacts.length > 0 ? quickContacts[0].id : null;
+                }
+                saveContacts();
+                renderContacts();
             }
         }
 
@@ -614,25 +802,25 @@
         }
 
         function sendMessage(id) {
-            const number = localStorage.getItem('targetPhoneNumber');
-            if (!number) {
-                alert('Please configure a recipient first!');
+            if (!activeContactId) {
+                alert('Pick a contact at the top first!');
                 return;
             }
+            const contact = quickContacts.find(c => c.id === activeContactId);
             const btn = customButtons.find(b => b.id === id);
-            if (!btn) return;
+            if (!contact || !btn) return;
             
-            const text = btn.message;
-            window.location.href = `sms:${number}?body=${encodeURIComponent(text)}`;
+            window.location.href = `sms:${contact.number}?body=${encodeURIComponent(btn.message)}`;
         }
 
         function callRecipient() {
-            const number = localStorage.getItem('targetPhoneNumber');
-            if (!number) {
-                alert('Please configure a recipient first!');
+            if (!activeContactId) {
+                alert('Pick a contact at the top first!');
                 return;
             }
-            window.location.href = `tel:${number}`;
+            const contact = quickContacts.find(c => c.id === activeContactId);
+            if (!contact) return;
+            window.location.href = `tel:${contact.number}`;
         }
     </script>
 </body>
