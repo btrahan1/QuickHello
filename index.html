@@ -349,43 +349,50 @@
             transform: scale(1);
             pointer-events: auto;
         }
-
-        .action-btn.active-delete {
-            animation: wiggle 0.3s infinite;
-        }
-
-        @keyframes wiggle {
-            0% { transform: rotate(0deg); }
-            25% { transform: rotate(-1deg); }
-            75% { transform: rotate(1deg); }
-            100% { transform: rotate(0deg); }
-        }
-
-        .action-btn {
-            position: relative;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-touch-callout: none;
-        }
-
-        .contact-delete-btn {
+        /* Context Menu Styles */
+        .context-menu {
             position: absolute;
-            top: -5px;
-            right: -5px;
-            width: 20px;
-            height: 20px;
-            background: #ef4444;
-            color: white;
-            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 8px;
+            min-width: 140px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             display: none;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            z-index: 10;
+            z-index: 10000;
+            animation: fadeIn 0.15s ease-out;
+            pointer-events: auto;
         }
 
-        .contact-item.active-delete .contact-delete-btn {
+        .context-menu-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-radius: 8px;
             display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .context-menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .context-menu-item.delete {
+            color: #ff4d4d;
+        }
+
+        .context-menu-item.delete:hover {
+            background: rgba(255, 77, 77, 0.1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
         }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -404,6 +411,16 @@
 
         <div class="actions-grid" id="actionsGrid">
             <!-- Dynamically populated -->
+        </div>
+
+        <!-- Context Menu -->
+        <div id="contextMenu" class="context-menu">
+            <div class="context-menu-item" id="menuEdit">
+                <span>✏️</span> Edit
+            </div>
+            <div class="context-menu-item delete" id="menuDelete">
+                <span>🗑️</span> Delete
+            </div>
         </div>
 
         <div class="settings-container">
@@ -477,12 +494,12 @@
             
             document.getElementById('toggleAddButton').addEventListener('click', () => toggleForm('addButtonForm', true));
             document.getElementById('cancelAddButton').addEventListener('click', () => toggleForm('addButtonForm', false));
-            document.getElementById('saveNewButton').addEventListener('click', addNewButton);
+            document.getElementById('saveNewButton').addEventListener('click', saveNewButton);
 
             // Dismiss overlays
             document.addEventListener('click', (e) => {
-                if (!e.target.closest('.action-btn') && !e.target.closest('.contact-item')) {
-                    hideDeleteIcons();
+                if (!e.target.closest('.context-menu')) {
+                    hideContextMenu();
                 }
             });
         });
@@ -534,18 +551,9 @@
                 item.innerHTML = `
                     <div class="avatar">${avatarContent}</div>
                     <div class="name">${contact.name}</div>
-                    <span class="contact-delete-btn" onclick="deleteContact(event, '${contact.id}')">×</span>
                 `;
 
-                // Simple Gesture Handling
-                item.onclick = (e) => {
-                    if (blockNextClick) {
-                        blockNextClick = false;
-                        return;
-                    }
-                    switchContact(contact.id);
-                };
-
+                // Long Press -> Context Menu
                 item.onmousedown = (e) => startHoldTimer(e, 'contact', contact.id);
                 item.onmouseup = () => cancelHoldTimer();
                 item.ontouchstart = (e) => startHoldTimer(e, 'contact', contact.id);
@@ -564,30 +572,69 @@
         }
 
         function switchContact(id) {
-            if (isLongPress) return;
             activeContactId = id;
             saveContacts();
             renderContacts();
         }
 
         let globalHoldTimer;
-        let blockNextClick = false;
+        let menuTargetId = null;
+        let menuTargetType = null;
 
         function startHoldTimer(e, type, id) {
-            // Prevent double-resetting of the flag (e.g. touchstart followed by mousedown)
             if (e.type === 'mousedown' && 'ontouchstart' in window) return;
             
-            blockNextClick = false;
             globalHoldTimer = setTimeout(() => {
-                blockNextClick = true;
-                const selector = type === 'contact' ? `.contact-item[onclick*="${id}"]` : `button[id="${id}"]`;
-                const el = document.querySelector(selector) || e.target.closest('.contact-item, .action-btn');
-                if (el) el.classList.add('active-delete');
+                showContextMenu(e, type, id);
             }, 800);
         }
 
         function cancelHoldTimer() {
             clearTimeout(globalHoldTimer);
+        }
+
+        function showContextMenu(e, type, id) {
+            const menu = document.getElementById('contextMenu');
+            menuTargetId = id;
+            menuTargetType = type;
+
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            menu.style.display = 'block';
+            
+            // Positioning (ensure it doesn't go off screen)
+            let posX = clientX;
+            let posY = clientY;
+            if (posX + 150 > window.innerWidth) posX = window.innerWidth - 160;
+            if (posY + 100 > window.innerHeight) posY = window.innerHeight - 110;
+
+            menu.style.left = `${posX}px`;
+            menu.style.top = `${posY}px`;
+
+            // Menu Options
+            const deleteItem = document.getElementById('menuDelete');
+            const editItem = document.getElementById('menuEdit');
+
+            // Default icons (Coffee, Wave, etc.) have specific IDs
+            const isPersistentDefault = DEFAULT_BUTTONS.find(d => d.id === id);
+            
+            deleteItem.style.display = (isPersistentDefault || type === 'contact') ? 'none' : 'flex';
+            
+            deleteItem.onclick = () => {
+                if (type === 'action') deleteButton({ stopPropagation: () => {} }, id);
+                hideContextMenu();
+            };
+
+            editItem.onclick = () => {
+                if (type === 'action') openEditForm(id);
+                // (Optional: add contact editing here if needed later)
+                hideContextMenu();
+            };
+        }
+
+        function hideContextMenu() {
+            document.getElementById('contextMenu').style.display = 'none';
         }
 
         function resetToDefaults() {
@@ -599,7 +646,7 @@
         }
 
         function hideDeleteIcons() {
-            document.querySelectorAll('.action-btn, .contact-item').forEach(b => b.classList.remove('active-delete'));
+            // No longer needed with context menu
         }
 
         function toggleForm(id, show) {
@@ -640,26 +687,17 @@
                 button.className = 'action-btn';
                 button.id = btn.id;
                 
-                const isDefault = DEFAULT_BUTTONS.find(d => d.id === btn.id);
-
                 button.innerHTML = `
                     <span class="icon">${btn.icon}</span>
                     <span class="label">${btn.label}</span>
-                    ${!isDefault ? `<span class="delete-btn" onclick="deleteButton(event, '${btn.id}')">×</span>` : ''}
                 `;
                 
-                // Action Buttons
-                button.onclick = (e) => {
-                    if (blockNextClick) {
-                        blockNextClick = false;
-                        openEditForm(btn.id);
-                        return;
-                    }
+                button.onclick = () => {
                     if (btn.isCall) callRecipient();
                     else sendMessage(btn.id);
                 };
 
-                // Allow long-press/hold for ALL buttons (including defaults)
+                // Context Menu Gesture
                 button.onmousedown = (e) => startHoldTimer(e, 'action', btn.id);
                 button.onmouseup = () => cancelHoldTimer();
                 button.ontouchstart = (e) => startHoldTimer(e, 'action', btn.id);
