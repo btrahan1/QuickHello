@@ -533,10 +533,16 @@
 
                 // Event listeners for long press
                 item.onmousedown = (e) => startContactPress(e);
-                item.onmouseup = () => endContactPress();
-                item.ontouchstart = (e) => startContactPress(e);
+                item.onmouseup = (e) => endContactPress(e, contact.id);
+                item.ontouchstart = (e) => {
+                    if (e.cancelable) e.preventDefault();
+                    startContactPress(e);
+                };
                 item.ontouchmove = () => cancelContactPress();
-                item.ontouchend = () => endContactPress();
+                item.ontouchend = (e) => {
+                    if (e.cancelable) e.preventDefault();
+                    endContactPress(e, contact.id);
+                };
 
                 bar.appendChild(item);
             });
@@ -567,8 +573,11 @@
         function cancelContactPress() {
             clearTimeout(contactPressTimer);
         }
-        function endContactPress() {
+        function endContactPress(e, id) {
             clearTimeout(contactPressTimer);
+            if (!isLongPress && id) {
+                switchContact(id);
+            }
         }
 
         function hideDeleteIcons() {
@@ -625,11 +634,32 @@
                 if (!isDefault) {
                     button.onmousedown = (e) => startPress(e);
                     button.onmouseup = (e) => endPress(e, btn);
-                    button.ontouchstart = (e) => startPress(e);
+                    button.ontouchstart = (e) => {
+                        if (e.cancelable) e.preventDefault();
+                        startPress(e);
+                    };
                     button.ontouchmove = () => cancelPress();
-                    button.ontouchend = (e) => endPress(e, btn);
+                    button.ontouchend = (e) => {
+                        if (e.cancelable) e.preventDefault();
+                        endPress(e, btn);
+                    };
                 } else {
-                    button.onclick = btn.isCall ? () => callRecipient() : () => sendMessage(btn.id);
+                    button.onclick = btn.isCall ? (e) => {
+                        if (e.cancelable) e.preventDefault();
+                        callRecipient();
+                    } : (e) => {
+                        if (e.cancelable) e.preventDefault();
+                        sendMessage(btn.id);
+                    };
+                    // For mobile, better to use touchstart/end for defaults too to be consistent
+                    button.ontouchstart = (e) => {
+                         if (e.cancelable) e.preventDefault();
+                    };
+                    button.ontouchend = (e) => {
+                        if (e.cancelable) e.preventDefault();
+                        if (btn.isCall) callRecipient();
+                        else sendMessage(btn.id);
+                    };
                 }
                 
                 grid.appendChild(button);
