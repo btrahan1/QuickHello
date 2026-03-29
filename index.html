@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickHello</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 20px;
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 440px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 24px;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+
+        .settings-container {
+            margin-bottom: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: left;
+        }
+
+        label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+
+        input[type="tel"] {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        input[type="tel"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        #currentNumberDisplay {
+            margin-top: 16px;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            padding: 8px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 8px;
+        }
+
+        .action-btn {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-4px);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--primary);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .action-btn .icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .action-btn .label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        /* Message highlights */
+        #coffee:hover .icon { filter: drop-shadow(0 0 8px #d97706); }
+        #wave:hover .icon { filter: drop-shadow(0 0 8px #3b82f6); }
+        #heart:hover .icon { filter: drop-shadow(0 0 8px #ef4444); }
+
+        @media (max-width: 480px) {
+            .glass-card {
+                padding: 24px;
+            }
+            .actions-grid {
+                gap: 12px;
+            }
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="glass-card">
+        <h1>QuickHello</h1>
+
+        <div class="settings-container">
+            <button id="selectContactButton" class="btn btn-secondary">
+                <span>👤</span> Select Contact
+            </button>
+
+            <div class="input-group">
+                <label for="phoneNumberInput">Manual Entry</label>
+                <input type="tel" id="phoneNumberInput" placeholder="+1234567890">
+                <button id="saveManualButton" class="btn btn-primary">Save Number</button>
+            </div>
+
+            <div id="currentNumberDisplay">No recipient configured.</div>
+        </div>
+
+        <div class="actions-grid">
+            <button onclick="sendMessage('coffee')" id="coffee" class="action-btn">
+                <span class="icon">☕</span>
+                <span class="label">Coffee</span>
+            </button>
+            <button onclick="sendMessage('wave')" id="wave" class="action-btn">
+                <span class="icon">👋</span>
+                <span class="label">Wave</span>
+            </button>
+            <button onclick="sendMessage('heart')" id="heart" class="action-btn">
+                <span class="icon">❤️</span>
+                <span class="label">Heart</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const messages = {
+            coffee: "Let's grab coffee soon!",
+            wave: "Hello there!",
+            heart: "Thinking of you!"
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConfiguredNumber();
+            document.getElementById('selectContactButton').addEventListener('click', selectContact);
+            document.getElementById('saveManualButton').addEventListener('click', saveManualNumber);
+        });
+
+        function loadConfiguredNumber() {
+            const savedNumber = localStorage.getItem('targetPhoneNumber');
+            const savedName = localStorage.getItem('targetContactName');
+            displayConfiguredNumber(savedNumber, savedName);
+        }
+
+        function displayConfiguredNumber(number, name) {
+            const displayElement = document.getElementById('currentNumberDisplay');
+            if (number && name) {
+                displayElement.innerHTML = `Recipient: <strong>${name}</strong><br><small>${number}</small>`;
+            } else if (number) {
+                displayElement.innerHTML = `Recipient: <strong>${number}</strong>`;
+            } else {
+                displayElement.innerText = 'No recipient configured yet.';
+            }
+        }
+
+        function saveManualNumber() {
+            const input = document.getElementById('phoneNumberInput');
+            const newNumber = input.value.trim();
+
+            if (newNumber) {
+                localStorage.setItem('targetPhoneNumber', newNumber);
+                localStorage.removeItem('targetContactName');
+                displayConfiguredNumber(newNumber);
+                input.value = '';
+                
+                // Visual feedback
+                const btn = document.getElementById('saveManualButton');
+                const originalText = btn.innerText;
+                btn.innerText = 'Saved!';
+                btn.style.background = '#10b981';
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            }
+        }
+
+        async function selectContact() {
+            if ('contacts' in navigator) {
+                try {
+                    const props = ['tel', 'name'];
+                    const opts = { multiple: false };
+                    const contacts = await navigator.contacts.select(props, opts);
+
+                    if (contacts.length > 0) {
+                        const contact = contacts[0];
+                        const phoneNumber = contact.tel[0];
+                        const contactName = contact.name[0] || "Unknown";
+
+                        localStorage.setItem('targetPhoneNumber', phoneNumber);
+                        localStorage.setItem('targetContactName', contactName);
+                        displayConfiguredNumber(phoneNumber, contactName);
+                    }
+                } catch (error) {
+                    console.error('Contact picker error:', error);
+                }
+            } else {
+                alert('Contact selection is not supported on this browser. Try Chrome on Android!');
+            }
+        }
+
+        function sendMessage(type) {
+            const number = localStorage.getItem('targetPhoneNumber');
+            if (!number) {
+                alert('Please configure a recipient first!');
+                return;
+            }
+            const text = messages[type];
+            window.location.href = `sms:${number}?body=${encodeURIComponent(text)}`;
+        }
+    </script>
+</body>
+</html>
