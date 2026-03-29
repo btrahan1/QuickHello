@@ -531,17 +531,17 @@
                     <span class="contact-delete-btn" onclick="deleteContact(event, '${contact.id}')">×</span>
                 `;
 
-                // Event listeners for long press
-                item.onmousedown = (e) => startContactPress(e);
-                item.onmouseup = (e) => endContactPress(e, contact.id);
+                // Unified Gesture Handling
+                item.onmousedown = (e) => handleContactStart(e, contact.id);
+                item.onmouseup = (e) => handleContactEnd(e, contact.id);
                 item.ontouchstart = (e) => {
                     if (e.cancelable) e.preventDefault();
-                    startContactPress(e);
+                    handleContactStart(e, contact.id);
                 };
-                item.ontouchmove = () => cancelContactPress();
+                item.ontouchmove = () => handleContactCancel();
                 item.ontouchend = (e) => {
                     if (e.cancelable) e.preventDefault();
-                    endContactPress(e, contact.id);
+                    handleContactEnd(e, contact.id);
                 };
 
                 bar.appendChild(item);
@@ -562,22 +562,29 @@
             renderContacts();
         }
 
-        function startContactPress(e) {
-            isLongPress = false;
-            contactPressTimer = setTimeout(() => {
-                isLongPress = true;
-                const item = e.target.closest('.contact-item');
+        let contactStartTime = 0;
+        let contactWiggleTimer;
+
+        function handleContactStart(e, id) {
+            contactStartTime = Date.now();
+            contactWiggleTimer = setTimeout(() => {
+                const item = document.querySelector(`.contact-item[onclick*="${id}"]`) || e.target.closest('.contact-item');
                 if (item) item.classList.add('active-delete');
             }, 600);
         }
-        function cancelContactPress() {
-            clearTimeout(contactPressTimer);
+
+        function handleContactCancel() {
+            clearTimeout(contactWiggleTimer);
+            contactStartTime = 0;
         }
-        function endContactPress(e, id) {
-            clearTimeout(contactPressTimer);
-            if (!isLongPress && id) {
+
+        function handleContactEnd(e, id) {
+            const duration = Date.now() - contactStartTime;
+            clearTimeout(contactWiggleTimer);
+            if (contactStartTime > 0 && duration < 600) {
                 switchContact(id);
             }
+            contactStartTime = 0;
         }
 
         function hideDeleteIcons() {
@@ -630,35 +637,29 @@
                     ${!isDefault ? `<span class="delete-btn" onclick="deleteButton(event, '${btn.id}')">×</span>` : ''}
                 `;
                 
-                // Event listeners for long press
+                // Event listeners for messages
                 if (!isDefault) {
-                    button.onmousedown = (e) => startPress(e);
-                    button.onmouseup = (e) => endPress(e, btn);
+                    button.onmousedown = (e) => handleActionStart(e, btn);
+                    button.onmouseup = (e) => handleActionEnd(e, btn);
                     button.ontouchstart = (e) => {
                         if (e.cancelable) e.preventDefault();
-                        startPress(e);
+                        handleActionStart(e, btn);
                     };
-                    button.ontouchmove = () => cancelPress();
+                    button.ontouchmove = () => handleActionCancel();
                     button.ontouchend = (e) => {
                         if (e.cancelable) e.preventDefault();
-                        endPress(e, btn);
+                        handleActionEnd(e, btn);
                     };
                 } else {
-                    button.onclick = btn.isCall ? (e) => {
+                    // Default buttons (no long press)
+                    const trigger = () => btn.isCall ? callRecipient() : sendMessage(btn.id);
+                    button.onclick = (e) => {
                         if (e.cancelable) e.preventDefault();
-                        callRecipient();
-                    } : (e) => {
-                        if (e.cancelable) e.preventDefault();
-                        sendMessage(btn.id);
-                    };
-                    // For mobile, better to use touchstart/end for defaults too to be consistent
-                    button.ontouchstart = (e) => {
-                         if (e.cancelable) e.preventDefault();
+                        trigger();
                     };
                     button.ontouchend = (e) => {
                         if (e.cancelable) e.preventDefault();
-                        if (btn.isCall) callRecipient();
-                        else sendMessage(btn.id);
+                        trigger();
                     };
                 }
                 
@@ -666,30 +667,31 @@
             });
         }
 
-        function startPress(e) {
-            isLongPress = false;
-            pressTimer = setTimeout(() => {
-                isLongPress = true;
-                const btn = e.target.closest('.action-btn');
+        let actionStartTime = 0;
+        let actionWiggleTimer;
+
+        function handleActionStart(e, btnData) {
+            actionStartTime = Date.now();
+            actionWiggleTimer = setTimeout(() => {
+                const btn = document.getElementById(btnData.id);
                 if (btn) btn.classList.add('active-delete');
             }, 600);
         }
 
-        function cancelPress() {
-            clearTimeout(pressTimer);
-            isLongPress = false; 
+        function handleActionCancel() {
+            clearTimeout(actionWiggleTimer);
+            actionStartTime = 0;
         }
 
-        function endPress(e, btnData) {
-            clearTimeout(pressTimer);
-            if (!isLongPress) {
-                // Regular tap
-                if (btnData.isCall) {
-                    callRecipient();
-                } else {
-                    sendMessage(btnData.id);
-                }
+        function handleActionEnd(e, btnData) {
+            const duration = Date.now() - actionStartTime;
+            clearTimeout(actionWiggleTimer);
+            if (actionStartTime > 0 && duration < 600) {
+                // Short tap -> send message
+                if (btnData.isCall) callRecipient();
+                else sendMessage(btnData.id);
             }
+            actionStartTime = 0;
         }
 
         function addNewButton() {
