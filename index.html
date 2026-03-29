@@ -61,10 +61,29 @@
         }
 
         .input-group {
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 12px;
             text-align: left;
+        }
+
+        .input-group.active {
+            max-height: 300px;
+            opacity: 1;
+            margin-top: 16px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
         }
 
         label {
@@ -202,20 +221,6 @@
     <div class="glass-card">
         <h1>QuickHello</h1>
 
-        <div class="settings-container">
-            <button id="selectContactButton" class="btn btn-secondary">
-                <span>👤</span> Select Contact
-            </button>
-
-            <div class="input-group">
-                <label for="phoneNumberInput">Manual Entry</label>
-                <input type="tel" id="phoneNumberInput" placeholder="+1234567890">
-                <button id="saveManualButton" class="btn btn-primary">Save Number</button>
-            </div>
-
-            <div id="currentNumberDisplay">No recipient configured.</div>
-        </div>
-
         <div class="actions-grid">
             <button onclick="sendMessage('coffee')" id="coffee" class="action-btn">
                 <span class="icon">☕</span>
@@ -242,6 +247,28 @@
                 <span class="label">Call</span>
             </button>
         </div>
+
+        <div class="settings-container">
+            <div id="currentNumberDisplay">No recipient configured.</div>
+
+            <div class="btn-group">
+                <button id="selectContactButton" class="btn btn-secondary">
+                    <span>👤</span> Contact
+                </button>
+                <button id="toggleManualButton" class="btn btn-secondary">
+                    <span>⌨️</span> Manual
+                </button>
+            </div>
+
+            <div class="input-group" id="manualEntryForm">
+                <label for="phoneNumberInput">Enter Number</label>
+                <input type="tel" id="phoneNumberInput" placeholder="+1234567890">
+                <div class="btn-group">
+                    <button id="saveManualButton" class="btn btn-primary">Save</button>
+                    <button id="cancelManualButton" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -257,7 +284,18 @@
             loadConfiguredNumber();
             document.getElementById('selectContactButton').addEventListener('click', selectContact);
             document.getElementById('saveManualButton').addEventListener('click', saveManualNumber);
+            document.getElementById('toggleManualButton').addEventListener('click', () => toggleManualEntry(true));
+            document.getElementById('cancelManualButton').addEventListener('click', () => toggleManualEntry(false));
         });
+
+        function toggleManualEntry(show) {
+            const form = document.getElementById('manualEntryForm');
+            if (show) {
+                form.classList.add('active');
+            } else {
+                form.classList.remove('active');
+            }
+        }
 
         function loadConfiguredNumber() {
             const savedNumber = localStorage.getItem('targetPhoneNumber');
@@ -285,6 +323,7 @@
                 localStorage.removeItem('targetContactName');
                 displayConfiguredNumber(newNumber);
                 input.value = '';
+                toggleManualEntry(false); // Collapse form after saving
                 
                 // Visual feedback
                 const btn = document.getElementById('saveManualButton');
