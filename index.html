@@ -531,10 +531,11 @@
                     <span class="contact-delete-btn" onclick="deleteContact(event, '${contact.id}')">×</span>
                 `;
 
-                // Long press for contact delete
+                // Event listeners for long press
                 item.onmousedown = (e) => startContactPress(e);
                 item.onmouseup = () => endContactPress();
                 item.ontouchstart = (e) => startContactPress(e);
+                item.ontouchmove = () => cancelContactPress();
                 item.ontouchend = () => endContactPress();
 
                 bar.appendChild(item);
@@ -555,7 +556,6 @@
             renderContacts();
         }
 
-        let contactPressTimer;
         function startContactPress(e) {
             isLongPress = false;
             contactPressTimer = setTimeout(() => {
@@ -563,6 +563,9 @@
                 const item = e.target.closest('.contact-item');
                 if (item) item.classList.add('active-delete');
             }, 600);
+        }
+        function cancelContactPress() {
+            clearTimeout(contactPressTimer);
         }
         function endContactPress() {
             clearTimeout(contactPressTimer);
@@ -623,6 +626,7 @@
                     button.onmousedown = (e) => startPress(e);
                     button.onmouseup = (e) => endPress(e, btn);
                     button.ontouchstart = (e) => startPress(e);
+                    button.ontouchmove = () => cancelPress();
                     button.ontouchend = (e) => endPress(e, btn);
                 } else {
                     button.onclick = btn.isCall ? () => callRecipient() : () => sendMessage(btn.id);
@@ -639,6 +643,11 @@
                 const btn = e.target.closest('.action-btn');
                 if (btn) btn.classList.add('active-delete');
             }, 600);
+        }
+
+        function cancelPress() {
+            clearTimeout(pressTimer);
+            isLongPress = false; 
         }
 
         function endPress(e, btnData) {
