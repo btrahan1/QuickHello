@@ -453,8 +453,7 @@
             </div>
 
             <div class="input-group" id="addButtonForm">
-                <!-- (Keep existing Add Button form) -->
-                <label>Add New Button</label>
+                <label class="btn-form-title">Add New Button</label>
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="newButtonIcon" placeholder="Icon (e.g. 🏡)" style="flex: 1; padding: 12px; border-radius: 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white;">
                     <input type="text" id="newButtonLabel" placeholder="Label (e.g. Home)" style="flex: 2; padding: 12px; border-radius: 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white;">
@@ -499,8 +498,14 @@
             document.getElementById('toggleManualButton').addEventListener('click', () => toggleForm('manualEntryForm', true));
             document.getElementById('cancelManualButton').addEventListener('click', () => toggleForm('manualEntryForm', false));
             
-            document.getElementById('toggleAddButton').addEventListener('click', () => toggleForm('addButtonForm', true));
-            document.getElementById('cancelAddButton').addEventListener('click', () => toggleForm('addButtonForm', false));
+            document.getElementById('toggleAddButton').addEventListener('click', () => {
+                resetButtonForm();
+                toggleForm('addButtonForm', true);
+            });
+            document.getElementById('cancelAddButton').addEventListener('click', () => {
+                toggleForm('addButtonForm', false);
+                resetButtonForm();
+            });
             document.getElementById('saveNewButton').addEventListener('click', saveNewButton);
 
             // Dismiss overlays
@@ -725,7 +730,7 @@
             document.getElementById('newButtonLabel').value = btn.label;
             document.getElementById('newButtonMessage').value = btn.message || '';
             
-            const title = document.querySelector('#addButtonForm label');
+            const title = document.querySelector('#addButtonForm .btn-form-title');
             const submitBtn = document.getElementById('saveNewButton');
             if (title) title.innerText = `Edit Button: ${btn.label}`;
             if (submitBtn) submitBtn.innerText = 'Update Button';
@@ -774,18 +779,20 @@
 
             saveCustomButtons();
             renderButtons();
-            
-            // Reset form
+            resetButtonForm();
+            toggleForm('addButtonForm', false);
+        }
+
+        function resetButtonForm() {
+            editingButtonId = null;
             document.getElementById('newButtonIcon').value = '';
             document.getElementById('newButtonLabel').value = '';
             document.getElementById('newButtonMessage').value = '';
             
-            const title = document.querySelector('#addButtonForm label');
+            const title = document.querySelector('#addButtonForm .btn-form-title');
             const submitBtn = document.getElementById('saveNewButton');
             if (title) title.innerText = 'Add New Button';
             if (submitBtn) submitBtn.innerText = 'Add Button';
-            
-            toggleForm('addButtonForm', false);
         }
 
         function deleteButton(event, id) {
