@@ -635,19 +635,19 @@
                 button.onclick = (e) => {
                     if (blockNextClick) {
                         blockNextClick = false;
+                        openEditForm(btn.id);
                         return;
                     }
                     if (btn.isCall) callRecipient();
                     else sendMessage(btn.id);
                 };
 
-                if (!isDefault) {
-                    button.onmousedown = (e) => startHoldTimer(e, 'action', btn.id);
-                    button.onmouseup = () => cancelHoldTimer();
-                    button.ontouchstart = (e) => startHoldTimer(e, 'action', btn.id);
-                    button.ontouchend = () => cancelHoldTimer();
-                    button.ontouchmove = () => cancelHoldTimer();
-                }
+                // Allow long-press/hold for ALL buttons (including defaults)
+                button.onmousedown = (e) => startHoldTimer(e, 'action', btn.id);
+                button.onmouseup = () => cancelHoldTimer();
+                button.ontouchstart = (e) => startHoldTimer(e, 'action', btn.id);
+                button.ontouchend = () => cancelHoldTimer();
+                button.ontouchmove = () => cancelHoldTimer();
                 
                 grid.appendChild(button);
             });
@@ -655,24 +655,56 @@
 
         // (The logic for startHoldTimer/cancelHoldTimer is now unified above)
 
-        function addNewButton() {
+        let editingButtonId = null;
+
+        function openEditForm(id) {
+            const btn = customButtons.find(b => b.id === id);
+            if (!btn) return;
+            
+            editingButtonId = id;
+            document.getElementById('newButtonIcon').value = btn.icon;
+            document.getElementById('newButtonLabel').value = btn.label;
+            document.getElementById('newButtonMessage').value = btn.message || '';
+            
+            const title = document.querySelector('#addButtonForm label');
+            const submitBtn = document.getElementById('saveNewButton');
+            if (title) title.innerText = `Edit Button: ${btn.label}`;
+            if (submitBtn) submitBtn.innerText = 'Update Button';
+            
+            toggleForm('addButtonForm', true);
+            hideDeleteIcons();
+        }
+
+        function saveNewButton() {
             const icon = document.getElementById('newButtonIcon').value.trim();
             const label = document.getElementById('newButtonLabel').value.trim();
             const message = document.getElementById('newButtonMessage').value.trim();
 
-            if (!icon || !label || !message) {
-                alert('Please fill in all fields (Icon, Label, and Message).');
+            if (!icon || !label || (editingButtonId !== 'call' && !message)) {
+                alert('Please fill in Icon, Label, and Message.');
                 return;
             }
 
-            const newBtn = {
-                id: 'custom_' + Date.now(),
-                icon: icon,
-                label: label,
-                message: message
-            };
+            if (editingButtonId) {
+                // Update existing
+                const index = customButtons.findIndex(b => b.id === editingButtonId);
+                if (index !== -1) {
+                    customButtons[index].icon = icon;
+                    customButtons[index].label = label;
+                    customButtons[index].message = message;
+                }
+                editingButtonId = null;
+            } else {
+                // Create new
+                const newBtn = {
+                    id: 'custom_' + Date.now(),
+                    icon: icon,
+                    label: label,
+                    message: message
+                };
+                customButtons.splice(customButtons.length - 1, 0, newBtn); // Add before "Call"
+            }
 
-            customButtons.splice(customButtons.length - 1, 0, newBtn); // Add before "Call"
             saveCustomButtons();
             renderButtons();
             
@@ -680,6 +712,12 @@
             document.getElementById('newButtonIcon').value = '';
             document.getElementById('newButtonLabel').value = '';
             document.getElementById('newButtonMessage').value = '';
+            
+            const title = document.querySelector('#addButtonForm label');
+            const submitBtn = document.getElementById('saveNewButton');
+            if (title) title.innerText = 'Add New Button';
+            if (submitBtn) submitBtn.innerText = 'Add Button';
+            
             toggleForm('addButtonForm', false);
         }
 
