@@ -924,7 +924,11 @@
             const btn = customButtons.find(b => b.id === id);
             if (!contact || !btn) return;
             
-            window.location.href = `sms:${contact.number}?body=${encodeURIComponent(btn.message)}`;
+            // iOS requires a ';' separator, while Android/Others use '?'
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const separator = isIOS ? ';' : '?';
+            
+            window.location.href = `sms:${contact.number}${separator}body=${encodeURIComponent(btn.message)}`;
         }
 
         function callRecipient() {
