@@ -244,9 +244,34 @@
             .glass-card {
                 padding: 24px;
             }
-            .actions-grid {
-                gap: 12px;
-            }
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            border: 2px solid var(--card-bg);
+            cursor: pointer;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .action-btn:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .action-btn {
+            position: relative;
         }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -258,31 +283,8 @@
     <div class="glass-card">
         <h1>QuickHello</h1>
 
-        <div class="actions-grid">
-            <button onclick="sendMessage('coffee')" id="coffee" class="action-btn">
-                <span class="icon">☕</span>
-                <span class="label">Coffee</span>
-            </button>
-            <button onclick="sendMessage('wave')" id="wave" class="action-btn">
-                <span class="icon">👋</span>
-                <span class="label">Wave</span>
-            </button>
-            <button onclick="sendMessage('heart')" id="heart" class="action-btn">
-                <span class="icon">❤️</span>
-                <span class="label">Heart</span>
-            </button>
-            <button onclick="sendMessage('hungry')" id="hungry" class="action-btn">
-                <span class="icon">🍕</span>
-                <span class="label">Hungry</span>
-            </button>
-            <button onclick="sendMessage('dinner')" id="dinner" class="action-btn">
-                <span class="icon">🍽️</span>
-                <span class="label">Dinner</span>
-            </button>
-            <button onclick="callRecipient()" id="call" class="action-btn">
-                <span class="icon">📞</span>
-                <span class="label">Call</span>
-            </button>
+        <div class="actions-grid" id="actionsGrid">
+            <!-- Dynamically populated -->
         </div>
 
         <div class="settings-container">
@@ -295,6 +297,9 @@
                 <button id="toggleManualButton" class="btn btn-secondary">
                     <span>⌨️</span> Manual
                 </button>
+                <button id="toggleAddButton" class="btn btn-secondary">
+                    <span>➕</span> Add
+                </button>
             </div>
 
             <div class="input-group" id="manualEntryForm">
@@ -305,32 +310,133 @@
                     <button id="cancelManualButton" class="btn btn-secondary">Cancel</button>
                 </div>
             </div>
+
+            <div class="input-group" id="addButtonForm">
+                <label>Add New Button</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="newButtonIcon" placeholder="Icon (e.g. 🏡)" style="flex: 1; padding: 12px; border-radius: 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white;">
+                    <input type="text" id="newButtonLabel" placeholder="Label (e.g. Home)" style="flex: 2; padding: 12px; border-radius: 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white;">
+                </div>
+                <textarea id="newButtonMessage" placeholder="Message to send..." style="width: 100%; padding: 12px; border-radius: 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white; min-height: 80px; font-family: inherit; resize: none; box-sizing: border-box;"></textarea>
+                <div class="btn-group">
+                    <button id="saveNewButton" class="btn btn-primary">Add Button</button>
+                    <button id="cancelAddButton" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        const messages = {
-            coffee: "Coffee! Now! ☕",
-            wave: "👋",
-            heart: "❤️",
-            hungry: "I'm hungry! 🍕",
-            dinner: "Dinner is ready! 🍽️"
-        };
+        const DEFAULT_BUTTONS = [
+            { id: 'coffee', icon: '☕', label: 'Coffee', message: 'Coffee! Now! ☕' },
+            { id: 'wave', icon: '👋', label: 'Wave', message: '👋' },
+            { id: 'heart', icon: '❤️', label: 'Heart', message: '❤️' },
+            { id: 'hungry', icon: '🍕', label: 'Hungry', message: 'I\'m hungry! 🍕' },
+            { id: 'dinner', icon: '🍽️', label: 'Dinner', message: 'Dinner is ready! 🍽️' },
+            { id: 'call', icon: '📞', label: 'Call', isCall: true }
+        ];
+
+        let customButtons = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             loadConfiguredNumber();
+            loadCustomButtons();
+            renderButtons();
+            
             document.getElementById('selectContactButton').addEventListener('click', selectContact);
             document.getElementById('saveManualButton').addEventListener('click', saveManualNumber);
-            document.getElementById('toggleManualButton').addEventListener('click', () => toggleManualEntry(true));
-            document.getElementById('cancelManualButton').addEventListener('click', () => toggleManualEntry(false));
+            document.getElementById('toggleManualButton').addEventListener('click', () => toggleForm('manualEntryForm', true));
+            document.getElementById('cancelManualButton').addEventListener('click', () => toggleForm('manualEntryForm', false));
+            
+            document.getElementById('toggleAddButton').addEventListener('click', () => toggleForm('addButtonForm', true));
+            document.getElementById('cancelAddButton').addEventListener('click', () => toggleForm('addButtonForm', false));
+            document.getElementById('saveNewButton').addEventListener('click', addNewButton);
         });
 
-        function toggleManualEntry(show) {
-            const form = document.getElementById('manualEntryForm');
-            if (show) {
-                form.classList.add('active');
+        function toggleForm(id, show) {
+            const forms = ['manualEntryForm', 'addButtonForm'];
+            forms.forEach(fId => {
+                const form = document.getElementById(fId);
+                if (fId === id && show) {
+                    form.classList.add('active');
+                } else {
+                    form.classList.remove('active');
+                }
+            });
+        }
+
+        function loadCustomButtons() {
+            const saved = localStorage.getItem('customButtons');
+            if (saved) {
+                customButtons = JSON.parse(saved);
             } else {
-                form.classList.remove('active');
+                customButtons = [...DEFAULT_BUTTONS];
+                saveCustomButtons();
+            }
+        }
+
+        function saveCustomButtons() {
+            localStorage.setItem('customButtons', JSON.stringify(customButtons));
+        }
+
+        function renderButtons() {
+            const grid = document.getElementById('actionsGrid');
+            grid.innerHTML = '';
+            
+            customButtons.forEach(btn => {
+                const button = document.createElement('button');
+                button.className = 'action-btn';
+                button.id = btn.id;
+                button.innerHTML = `
+                    <span class="icon">${btn.icon}</span>
+                    <span class="label">${btn.label}</span>
+                    ${!DEFAULT_BUTTONS.find(d => d.id === btn.id) ? `<span class="delete-btn" onclick="deleteButton(event, '${btn.id}')">×</span>` : ''}
+                `;
+                
+                if (btn.isCall) {
+                    button.onclick = () => callRecipient();
+                } else {
+                    button.onclick = () => sendMessage(btn.id);
+                }
+                
+                grid.appendChild(button);
+            });
+        }
+
+        function addNewButton() {
+            const icon = document.getElementById('newButtonIcon').value.trim();
+            const label = document.getElementById('newButtonLabel').value.trim();
+            const message = document.getElementById('newButtonMessage').value.trim();
+
+            if (!icon || !label || !message) {
+                alert('Please fill in all fields (Icon, Label, and Message).');
+                return;
+            }
+
+            const newBtn = {
+                id: 'custom_' + Date.now(),
+                icon: icon,
+                label: label,
+                message: message
+            };
+
+            customButtons.splice(customButtons.length - 1, 0, newBtn); // Add before "Call"
+            saveCustomButtons();
+            renderButtons();
+            
+            // Reset form
+            document.getElementById('newButtonIcon').value = '';
+            document.getElementById('newButtonLabel').value = '';
+            document.getElementById('newButtonMessage').value = '';
+            toggleForm('addButtonForm', false);
+        }
+
+        function deleteButton(event, id) {
+            event.stopPropagation();
+            if (confirm('Delete this button?')) {
+                customButtons = customButtons.filter(b => b.id !== id);
+                saveCustomButtons();
+                renderButtons();
             }
         }
 
@@ -443,13 +549,16 @@
             });
         }
 
-        function sendMessage(type) {
+        function sendMessage(id) {
             const number = localStorage.getItem('targetPhoneNumber');
             if (!number) {
                 alert('Please configure a recipient first!');
                 return;
             }
-            const text = messages[type];
+            const btn = customButtons.find(b => b.id === id);
+            if (!btn) return;
+            
+            const text = btn.message;
             window.location.href = `sms:${number}?body=${encodeURIComponent(text)}`;
         }
 
