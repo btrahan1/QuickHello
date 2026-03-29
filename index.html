@@ -349,6 +349,13 @@
             transform: scale(1);
             pointer-events: auto;
         }
+        .action-btn, .contact-item {
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
+        }
+
         /* Context Menu Styles */
         .context-menu {
             position: absolute;
@@ -405,11 +412,11 @@
         <h1>QuickHello</h1>
 
         <!-- Multi-Contact Bar -->
-        <div class="contact-bar" id="contactBar">
+        <div id="contactBar" class="contact-bar" oncontextmenu="return false;">
             <!-- Dynamically populated -->
         </div>
 
-        <div class="actions-grid" id="actionsGrid">
+        <div id="actionsGrid" class="actions-grid" oncontextmenu="return false;">
             <!-- Dynamically populated -->
         </div>
 
