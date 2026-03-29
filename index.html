@@ -675,9 +675,6 @@
             localStorage.setItem('customButtons', JSON.stringify(customButtons));
         }
 
-        let pressTimer;
-        let isLongPress = false;
-
         function renderButtons() {
             const grid = document.getElementById('actionsGrid');
             grid.innerHTML = '';
@@ -728,6 +725,14 @@
             
             toggleForm('addButtonForm', true);
             hideDeleteIcons();
+            
+            // Smooth scroll to the edit controls
+            setTimeout(() => {
+                document.getElementById('addButtonForm').scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+            }, 100);
         }
 
         function saveNewButton() {
