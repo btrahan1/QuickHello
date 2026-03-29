@@ -531,18 +531,20 @@
                     <span class="contact-delete-btn" onclick="deleteContact(event, '${contact.id}')">×</span>
                 `;
 
-                // Unified Gesture Handling
-                item.onmousedown = (e) => handleContactStart(e, contact.id);
-                item.onmouseup = (e) => handleContactEnd(e, contact.id);
-                item.ontouchstart = (e) => {
-                    if (e.cancelable) e.preventDefault();
-                    handleContactStart(e, contact.id);
+                // Simple Gesture Handling
+                item.onclick = (e) => {
+                    if (blockNextClick) {
+                        blockNextClick = false;
+                        return;
+                    }
+                    switchContact(contact.id);
                 };
-                item.ontouchmove = () => handleContactCancel();
-                item.ontouchend = (e) => {
-                    if (e.cancelable) e.preventDefault();
-                    handleContactEnd(e, contact.id);
-                };
+
+                item.onmousedown = (e) => startHoldTimer(e, 'contact', contact.id);
+                item.onmouseup = () => cancelHoldTimer();
+                item.ontouchstart = (e) => startHoldTimer(e, 'contact', contact.id);
+                item.ontouchend = () => cancelHoldTimer();
+                item.ontouchmove = () => cancelHoldTimer();
 
                 bar.appendChild(item);
             });
@@ -562,29 +564,21 @@
             renderContacts();
         }
 
-        let contactStartTime = 0;
-        let contactWiggleTimer;
+        let globalHoldTimer;
+        let blockNextClick = false;
 
-        function handleContactStart(e, id) {
-            contactStartTime = Date.now();
-            contactWiggleTimer = setTimeout(() => {
-                const item = document.querySelector(`.contact-item[onclick*="${id}"]`) || e.target.closest('.contact-item');
-                if (item) item.classList.add('active-delete');
-            }, 600);
+        function startHoldTimer(e, type, id) {
+            blockNextClick = false;
+            globalHoldTimer = setTimeout(() => {
+                blockNextClick = true;
+                const selector = type === 'contact' ? `.contact-item[onclick*="${id}"]` : `button[id="${id}"]`;
+                const el = document.querySelector(selector) || e.target.closest('.contact-item, .action-btn');
+                if (el) el.classList.add('active-delete');
+            }, 800);
         }
 
-        function handleContactCancel() {
-            clearTimeout(contactWiggleTimer);
-            contactStartTime = 0;
-        }
-
-        function handleContactEnd(e, id) {
-            const duration = Date.now() - contactStartTime;
-            clearTimeout(contactWiggleTimer);
-            if (contactStartTime > 0 && duration < 600) {
-                switchContact(id);
-            }
-            contactStartTime = 0;
+        function cancelHoldTimer() {
+            clearTimeout(globalHoldTimer);
         }
 
         function hideDeleteIcons() {
@@ -637,62 +631,29 @@
                     ${!isDefault ? `<span class="delete-btn" onclick="deleteButton(event, '${btn.id}')">×</span>` : ''}
                 `;
                 
-                // Event listeners for messages
+                // Action Buttons
+                button.onclick = (e) => {
+                    if (blockNextClick) {
+                        blockNextClick = false;
+                        return;
+                    }
+                    if (btn.isCall) callRecipient();
+                    else sendMessage(btn.id);
+                };
+
                 if (!isDefault) {
-                    button.onmousedown = (e) => handleActionStart(e, btn);
-                    button.onmouseup = (e) => handleActionEnd(e, btn);
-                    button.ontouchstart = (e) => {
-                        if (e.cancelable) e.preventDefault();
-                        handleActionStart(e, btn);
-                    };
-                    button.ontouchmove = () => handleActionCancel();
-                    button.ontouchend = (e) => {
-                        if (e.cancelable) e.preventDefault();
-                        handleActionEnd(e, btn);
-                    };
-                } else {
-                    // Default buttons (no long press)
-                    const trigger = () => btn.isCall ? callRecipient() : sendMessage(btn.id);
-                    button.onclick = (e) => {
-                        if (e.cancelable) e.preventDefault();
-                        trigger();
-                    };
-                    button.ontouchend = (e) => {
-                        if (e.cancelable) e.preventDefault();
-                        trigger();
-                    };
+                    button.onmousedown = (e) => startHoldTimer(e, 'action', btn.id);
+                    button.onmouseup = () => cancelHoldTimer();
+                    button.ontouchstart = (e) => startHoldTimer(e, 'action', btn.id);
+                    button.ontouchend = () => cancelHoldTimer();
+                    button.ontouchmove = () => cancelHoldTimer();
                 }
                 
                 grid.appendChild(button);
             });
         }
 
-        let actionStartTime = 0;
-        let actionWiggleTimer;
-
-        function handleActionStart(e, btnData) {
-            actionStartTime = Date.now();
-            actionWiggleTimer = setTimeout(() => {
-                const btn = document.getElementById(btnData.id);
-                if (btn) btn.classList.add('active-delete');
-            }, 600);
-        }
-
-        function handleActionCancel() {
-            clearTimeout(actionWiggleTimer);
-            actionStartTime = 0;
-        }
-
-        function handleActionEnd(e, btnData) {
-            const duration = Date.now() - actionStartTime;
-            clearTimeout(actionWiggleTimer);
-            if (actionStartTime > 0 && duration < 600) {
-                // Short tap -> send message
-                if (btnData.isCall) callRecipient();
-                else sendMessage(btnData.id);
-            }
-            actionStartTime = 0;
-        }
+        // (The logic for startHoldTimer/cancelHoldTimer is now unified above)
 
         function addNewButton() {
             const icon = document.getElementById('newButtonIcon').value.trim();
